@@ -8,9 +8,10 @@ import { Check } from 'lucide-react';
 interface ChatMessageProps {
   message: Message;
   className?: string;
+  style?: React.CSSProperties;
 }
 
-const ChatMessage = ({ message, className }: ChatMessageProps) => {
+const ChatMessage = ({ message, className, style }: ChatMessageProps) => {
   const { id, text, isCurrentUser, userId, timestamp } = message;
   
   return (
@@ -20,6 +21,7 @@ const ChatMessage = ({ message, className }: ChatMessageProps) => {
         isCurrentUser ? "self-end" : "self-start",
         className
       )}
+      style={style}
     >
       {!isCurrentUser && (
         <UserAvatar userId={userId} size="sm" className="mb-1" />
