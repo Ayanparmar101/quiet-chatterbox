@@ -1,5 +1,5 @@
 
-import { storeData, retrieveData, STORAGE_KEYS, getUserId } from './storage';
+import { supabase } from "@/integrations/supabase/client";
 
 export interface Message {
   id: string;
@@ -10,34 +10,58 @@ export interface Message {
 }
 
 // Get all stored messages
-export const getMessages = (): Message[] => {
+export const getMessages = async (): Promise<Message[]> => {
+  const { data: messages, error } = await supabase
+    .from('messages')
+    .select('*')
+    .order('timestamp', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching messages:', error);
+    return [];
+  }
+
   const currentUserId = getUserId();
-  const messages = retrieveData<Message[]>(STORAGE_KEYS.MESSAGES, []);
-  
-  // Update isCurrentUser flag based on current user ID
-  return messages.map(message => ({
-    ...message,
-    isCurrentUser: message.userId === currentUserId
+  return messages.map(msg => ({
+    id: msg.id,
+    text: msg.text,
+    userId: msg.user_id,
+    timestamp: msg.timestamp,
+    isCurrentUser: msg.user_id === currentUserId
   }));
 };
 
 // Add a new message
-export const addMessage = (text: string): Message[] => {
-  const messages = getMessages();
-  const currentUserId = getUserId();
-  
-  const newMessage: Message = {
-    id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-    text,
-    userId: currentUserId,
-    timestamp: Date.now(),
-    isCurrentUser: true
-  };
-  
-  const updatedMessages = [...messages, newMessage];
-  storeData(STORAGE_KEYS.MESSAGES, updatedMessages);
-  
-  return updatedMessages;
+export const addMessage = async (text: string): Promise<Message[]> => {
+  const userId = getUserId();
+  const timestamp = Date.now();
+
+  const { error } = await supabase
+    .from('messages')
+    .insert([
+      {
+        text,
+        user_id: userId,
+        timestamp
+      }
+    ]);
+
+  if (error) {
+    console.error('Error adding message:', error);
+    return [];
+  }
+
+  return getMessages();
+};
+
+// Get or create a unique user ID
+export const getUserId = (): string => {
+  let userId = localStorage.getItem('userId');
+  if (!userId) {
+    userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    localStorage.setItem('userId', userId);
+  }
+  return userId;
 };
 
 // Format timestamp to a readable format

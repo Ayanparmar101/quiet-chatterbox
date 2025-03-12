@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { cn } from "@/lib/utils";
 import AnimatedTransition from '@/components/AnimatedTransition';
@@ -6,15 +5,37 @@ import ChatMessage from '@/components/ChatMessage';
 import ChatInput from '@/components/ChatInput';
 import { Message, getMessages, addMessage } from '@/lib/messages';
 import { MessageSquare } from 'lucide-react';
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load messages from localStorage on component mount
+  // Load messages from Supabase on component mount
   useEffect(() => {
-    setMessages(getMessages());
+    loadMessages();
+    
+    // Subscribe to new messages
+    const channel = supabase
+      .channel('public:messages')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        () => {
+          loadMessages();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
+
+  const loadMessages = async () => {
+    const messages = await getMessages();
+    setMessages(messages);
+  };
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -25,9 +46,8 @@ const Index = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleSendMessage = (text: string) => {
-    const updatedMessages = addMessage(text);
-    setMessages(updatedMessages);
+  const handleSendMessage = async (text: string) => {
+    await addMessage(text);
   };
 
   return (
