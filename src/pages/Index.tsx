@@ -15,7 +15,7 @@ const Index = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // Load messages from Supabase on component mount
+  // Load messages and set up real-time subscription
   useEffect(() => {
     loadMessages();
     
@@ -25,12 +25,14 @@ const Index = () => {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages' },
-        () => {
-          loadMessages();
+        async (payload) => {
+          // When a new message is inserted, reload all messages to get the latest state
+          await loadMessages();
         }
       )
       .subscribe();
 
+    // Cleanup subscription on unmount
     return () => {
       supabase.removeChannel(channel);
     };
@@ -40,6 +42,8 @@ const Index = () => {
     try {
       const messages = await getMessages();
       setMessages(messages);
+      // Scroll to bottom whenever new messages are loaded
+      scrollToBottom();
     } catch (error) {
       console.error('Failed to load messages:', error);
       toast({
@@ -50,20 +54,17 @@ const Index = () => {
     }
   };
 
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   const handleSendMessage = async (text: string) => {
     try {
       setIsLoading(true);
       await addMessage(text);
-      // No need to manually update messages as the subscription will trigger loadMessages
+      // The subscription will automatically trigger loadMessages
     } catch (error) {
       console.error('Error sending message:', error);
       toast({

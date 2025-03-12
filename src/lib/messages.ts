@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Message {
@@ -32,7 +31,7 @@ export const getMessages = async (): Promise<Message[]> => {
 };
 
 // Add a new message
-export const addMessage = async (text: string): Promise<Message[]> => {
+export const addMessage = async (text: string): Promise<void> => {
   const userId = getUserId();
   const timestamp = Date.now();
 
@@ -50,8 +49,6 @@ export const addMessage = async (text: string): Promise<Message[]> => {
     console.error('Error adding message:', error);
     throw new Error(`Failed to add message: ${error.message}`);
   }
-
-  return getMessages();
 };
 
 // Get or create a unique user ID
