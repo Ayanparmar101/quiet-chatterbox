@@ -18,7 +18,7 @@ export const getMessages = async (): Promise<Message[]> => {
 
   if (error) {
     console.error('Error fetching messages:', error);
-    return [];
+    throw new Error(`Failed to fetch messages: ${error.message}`);
   }
 
   const currentUserId = getUserId();
@@ -48,7 +48,7 @@ export const addMessage = async (text: string): Promise<Message[]> => {
 
   if (error) {
     console.error('Error adding message:', error);
-    return [];
+    throw new Error(`Failed to add message: ${error.message}`);
   }
 
   return getMessages();

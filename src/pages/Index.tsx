@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { cn } from "@/lib/utils";
 import AnimatedTransition from '@/components/AnimatedTransition';
@@ -6,10 +7,13 @@ import ChatInput from '@/components/ChatInput';
 import { Message, getMessages, addMessage } from '@/lib/messages';
 import { MessageSquare } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   // Load messages from Supabase on component mount
   useEffect(() => {
@@ -33,8 +37,17 @@ const Index = () => {
   }, []);
 
   const loadMessages = async () => {
-    const messages = await getMessages();
-    setMessages(messages);
+    try {
+      const messages = await getMessages();
+      setMessages(messages);
+    } catch (error) {
+      console.error('Failed to load messages:', error);
+      toast({
+        title: "Error loading messages",
+        description: "Please try refreshing the page",
+        variant: "destructive"
+      });
+    }
   };
 
   // Scroll to bottom when messages change
@@ -47,7 +60,20 @@ const Index = () => {
   };
 
   const handleSendMessage = async (text: string) => {
-    await addMessage(text);
+    try {
+      setIsLoading(true);
+      await addMessage(text);
+      // No need to manually update messages as the subscription will trigger loadMessages
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: "Failed to send message",
+        description: "Please try again",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -73,7 +99,7 @@ const Index = () => {
                 <MessageSquare className="h-12 w-12 mb-3 mx-auto text-whatsapp-dark opacity-80" />
                 <h2 className="text-xl font-medium mb-2">Welcome to WhatsApp Web Clone</h2>
                 <p className="text-gray-600 max-w-md">
-                  Start chatting anonymously. Your messages will be saved locally and persist between sessions.
+                  Start chatting anonymously. Your messages will be saved and visible to anyone with the link.
                 </p>
               </div>
             </div>
@@ -97,7 +123,7 @@ const Index = () => {
         delay={500}
       >
         <div className="max-w-3xl mx-auto">
-          <ChatInput onSendMessage={handleSendMessage} />
+          <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} />
         </div>
       </AnimatedTransition>
     </div>

@@ -7,9 +7,10 @@ import { Send } from 'lucide-react';
 interface ChatInputProps {
   onSendMessage: (message: string) => void;
   className?: string;
+  isLoading?: boolean;
 }
 
-const ChatInput = ({ onSendMessage, className }: ChatInputProps) => {
+const ChatInput = ({ onSendMessage, className, isLoading = false }: ChatInputProps) => {
   const [message, setMessage] = useState('');
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -24,7 +25,7 @@ const ChatInput = ({ onSendMessage, className }: ChatInputProps) => {
     e.preventDefault();
     
     const trimmedMessage = message.trim();
-    if (trimmedMessage) {
+    if (trimmedMessage && !isLoading) {
       onSendMessage(trimmedMessage);
       setMessage('');
     }
@@ -66,10 +67,12 @@ const ChatInput = ({ onSendMessage, className }: ChatInputProps) => {
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         placeholder="Type a message"
+        disabled={isLoading}
         className={cn(
           "flex-1 resize-none max-h-32 px-3 py-2.5 rounded-lg",
           "bg-transparent border-0 focus:outline-none focus:ring-0",
-          "text-gray-800 placeholder:text-gray-400"
+          "text-gray-800 placeholder:text-gray-400",
+          isLoading && "opacity-70"
         )}
         rows={1}
       />
@@ -77,11 +80,11 @@ const ChatInput = ({ onSendMessage, className }: ChatInputProps) => {
       <Button 
         type="submit" 
         size="icon"
-        disabled={!message.trim()}
+        disabled={!message.trim() || isLoading}
         className={cn(
           "h-10 w-10 rounded-full bg-whatsapp hover:bg-whatsapp-dark text-white",
           "transition-all duration-400 ease-in-out transform",
-          !message.trim() && "opacity-70"
+          (!message.trim() || isLoading) && "opacity-70"
         )}
       >
         <Send className="h-5 w-5" />
